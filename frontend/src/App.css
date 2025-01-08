@@ -101,3 +101,29 @@
     background-color: #fff;
     border: 1px solid #ccc;
   }
+
+  /* Style for current location button */
+.current-location-btn {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  background: #fff;
+  padding: 10px 15px;
+  border-radius: 4px;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  z-index: 1000;
+  font-size: 14px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.current-location-btn:hover {
+  background: #f0f0f0;
+}
+
+/* Style for the search bar control (using leaflet-control-geocoder's styles) */
+.leaflet-control-geocoder {
+  margin-top: 10px;
+  z-index: 1000; /* Ensure it's above the map layers */
+}
