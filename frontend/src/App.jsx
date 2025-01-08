@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import {MapContainer, Marker, Popup, useMap} from 'react-leaflet';
 import { TileLayer } from 'react-leaflet/TileLayer'
 import React from 'react';
+import * as L from "leaflet";
 import './App.css';
-import 'leaflet/dist/leaflet.css'
+import "leaflet/dist/leaflet.css"; // Import leaflet CSS
+import SearchBar from './component/Searchbar';
 
 
 function MapUpdater({ location }) {
@@ -14,9 +16,21 @@ function MapUpdater({ location }) {
   return null;
 }
 
+const MaplocationUpdater = ({location})=>{
+
+  const map = useMap();
+
+      useEffect(() => {
+        map.flyTo(location, 13, { duration: 0.5 });
+      }, [location, map]);
+
+  return null;
+};
+
 function App() {
 
   const [location, setlocation] = useState([28.704060, 77.102493 ])
+  const [searchLocation, setSearchLocation] = useState(null);
 
   console.log("location :" + location);
 
@@ -62,12 +76,22 @@ function App() {
         </button>
       );
     }
+
+    const handleSelectionLocation = (newlocation) => {
+      setSearchLocation(newlocation);
+    }
+
+    const handleClearSearchlocation = () =>{
+      setSearchLocation(null);
+    }
+    
   
   return (
     <div>
       <>
+      <SearchBar onSelectLocation={handleSelectionLocation} onClearSearchLocation={handleClearSearchlocation}/>
       <MapContainer center={location} zoom={13} style={{ height: "100vh", width: "100vw" }}>
-      {/* <MapUpdater location={location} /> */}
+
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
@@ -76,6 +100,13 @@ function App() {
             You are here !!
           </Popup>
       </Marker>
+
+
+      {searchLocation && (
+        <Marker position={searchLocation} />
+      )}
+
+      <MapUpdater location={location} />
       <GoToCurrentLocationButton location={location} />
       </MapContainer>
       </>
