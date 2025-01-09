@@ -91,15 +91,19 @@ function App() {
     const handleRouteDirection = useCallback(() =>{
       if (!location || !searchLocation) return
 
-      const routeUrl = `https://router.project-osrm.org/route/v1/driving/${location[1]},${location[0]};${searchLocation[1]},${searchLocation[0]}?overview=full&geometries=geojson`;
+      const routeUrl = `https://router.project-osrm.org/route/v1/driving/${location[1]},${location[0]};${searchLocation[1]},${searchLocation[0]}?overview=full&geometries=geojson&alternatives=true`;
 
       fetch(routeUrl)
       .then((res) => res.json())
       .then( (data) => {
         if (data.routes?.length > 0) {
-          const coordinates = data.routes[0].geometry.coordinates.map(
-            ([lng, lat]) => ({ lat, lng })
+          // const coordinates = data.routes[0].geometry.coordinates.map(
+          //   ([lng, lat]) => ({ lat, lng })
+          
+          const coordinates = data.routes.map((route) =>
+            route.geometry.coordinates.map(([lng, lat]) => ({ lat, lng }))
           );
+
           setrouteCoordinate(coordinates);
         }
         
@@ -110,7 +114,9 @@ function App() {
   
   return (
     <div>
-      <SearchBar onSelectLocation={handleSelectionLocation} onClearSearchLocation={handleClearSearchlocation}/>
+      <SearchBar onSelectLocation={handleSelectionLocation} onClearSearchLocation={handleClearSearchlocation}
+        onDirectionClick={handleRouteDirection}
+      />
       <MapContainer center={location} zoom={13} style={{ height: "100vh", width: "100vw" }}>
 
         <TileLayer
@@ -130,15 +136,23 @@ function App() {
       <MapUpdater location={location} />
       <GoToCurrentLocationButton location={location} />
 
-      {routeCoordinate.length > 0 && (
-          <Polyline positions={routeCoordinate} color="blue" />
-        )}
+      {routeCoordinate.map((route, index) => (
+          <Polyline key={index} positions={route.map(({ lat, lng }) => [lat, lng])} 
+            pathOptions={
+              {
+                color: index === 0 ? "green" : "blue",
+                weight: index === 0 ? 6 : 4, 
+                opacity: index === 0 ? 0.9 : 0.6
+              }
+            }
+          />
+        ))}
 
       </MapContainer>
 
-      {searchLocation && (
-        <button className='btn-directions' onClick={handleRouteDirection}>Direction</button>
-      )}
+      {/* {searchLocation && (
+        <button className='btn-directions' onClick={handleRouteDirection}>➡️</button>
+      )} */}
       
     </div>
   )
