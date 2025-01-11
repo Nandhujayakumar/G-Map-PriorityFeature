@@ -33,7 +33,7 @@ function App() {
   const [location, setlocation] = useState([28.704060, 77.102493 ])
   const [searchLocation, setSearchLocation] = useState(null);
   const [routeCoordinate , setrouteCoordinate] = useState([]);
-  const [routePopularity, setRoutePopularity] = useState([]);
+  const [popularity, setPopularity] = useState([]);
 
   console.log("location :" + location);
 
@@ -178,33 +178,43 @@ function App() {
   
       fetch(routeUrl)
         .then((res) => res.json())
-        .then(async (data) => {
+        .then((data) => {
+
+          console.log("API response:", data);
           if (data.routes?.length > 0) {
-            const coordinates = data.routes.map((route) => 
+            const routes = data.routes.map((route) => 
                  route.geometry.coordinates.map(([lng, lat]) => ({
                   lat,
                   lng,
                 }))
               );
+
+              const requestBody = {
+                source: { lat: location[0], lng: location[1] },
+                destination: { lat: searchLocation[0], lng: searchLocation[1] },
+              };
+
+              console.log("Sending to backend:", requestBody); 
   
-            setrouteCoordinate(coordinates); // Save enriched route data
-
-            // const popularityPromises = coordinates.map((route) =>
-            //   fetchRoutepopularity(route)
-            // );
-
-            // const popularity = await Promise.all(popularityPromises);
-            // setRoutePopularity(popularity);
-            // console.log("Updated Popularity:", popularity);
-
-
-          }
-          console.log("route length fetched " + data.routes?.length);
-           
-        })
-        .catch((err) => console.error("Error fetching route data:", err));
-    }, [location, searchLocation]);
-    
+              fetch("http://localhost:8080/api/routes/popularity", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(routes),
+              })
+                .then((res) => res.json())                 
+               .then((popularityData) => {
+                console.log("Popuilarity api response : ", popularityData)
+                  setPopularity(popularityData.popularities);
+                  
+                })
+                setrouteCoordinate(routes);
+                
+            }
+          })
+          .catch((err) => console.error("Error fetching route data:", err));
+      }, [location, searchLocation]);
 
   
   return (
@@ -244,12 +254,7 @@ function App() {
               {/* <Tooltip>
               <div>
                 <b>Route Details</b>
-                <br />
-                <b>Distance:</b> {(route.distance / 1000).toFixed(2)} km
-                <br />
-                <b>Duration:</b> {(route.duration / 60).toFixed(1)} mins
-                <br />
-                <b>Popularity:</b> {routePopularity[index] || 0} users
+                <b>Popularity:</b> {popularity[index]} users
               </div>
             </Tooltip> */}
 
