@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import "./SearchBar.css"; // CSS for the SearchBar component
 
-const SearchBar = ({ onSelectLocation , onClearSearchLocation}) => {
+const SearchBar = ({ onSelectLocation , onClearSearchLocation, onDirectionClick}) => {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
 
@@ -53,7 +53,10 @@ const SearchBar = ({ onSelectLocation , onClearSearchLocation}) => {
         value={query}
         onChange={handleInputChange}
       />
-      <button className="btn-search-remove" onClick={handleQueryClear}>❌</button>
+      <button className="btn-clear" onClick={handleQueryClear}> x </button>
+      <button className="btn-directions" onClick={onDirectionClick}>
+        ➔
+      </button>
       {suggestions.length > 0 && (
         <ul className="suggestions">
           {suggestions.map((suggestion, index) => (
