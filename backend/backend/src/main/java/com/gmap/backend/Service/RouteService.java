@@ -1,75 +1,84 @@
 package com.gmap.backend.Service;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
+import javax.xml.parsers.*;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 
 
 @Service
 public class RouteService {
 
-   private final RestTemplate restTemplate = new RestTemplate();
+    private static final String OSM_API_URL = "https://api.openstreetmap.org/api/0.6/trackpoints?bbox=";
+    private static final double MATCHING_DISTANCE_THRESHOLD = 0.01;
 
-    public List<Map<String, Object>> calculateRoutePopularity(List<List<Map<String, Double>>> routes) {
-        List<Map<String, Object>> popularityData = new ArrayList<>();
+    public List<Integer> calculatePopularityForRoutes(List<List<List<Double>>> routes) {
+        List<Integer> popularities = new ArrayList<>();
 
-        for (List<Map<String, Double>> route : routes) {
-            // Calculate bounding box for route
-            double minLat = Double.MAX_VALUE, maxLat = Double.MIN_VALUE;
-            double minLng = Double.MAX_VALUE, maxLng = Double.MIN_VALUE;
-
-            for (Map<String, Double> point : route) {
-                double lat = point.get("lat");
-                double lng = point.get("lng");
-                minLat = Math.min(minLat, lat);
-                maxLat = Math.max(maxLat, lat);
-                minLng = Math.min(minLng, lng);
-                maxLng = Math.max(maxLng, lng);
-            }
-
-            // Bounding box max size enforcement for OSM API
-            if ((maxLng - minLng) > 0.25 || (maxLat - minLat) > 0.25) {
-                System.out.println("(maxLng - minLng) > 0.25 || (maxLat - minLat) > 0.25)");
-                popularityData.add(Map.of(
-                        "route", route,
-                        "popularity", 0
-                ));
-                continue;
-            }
-
-            // Fetch GPS data trace for bounding box
-            String gpsTraceUrl = String.format(
-                "https://api.openstreetmap.org/api/0.6/trackpoints?bbox=%f,%f,%f,%f",
-                minLng, minLat, maxLng, maxLat
-            );
-
+        for (List<List<Double>> route : routes) {
             try {
-                String response = restTemplate.getForObject(gpsTraceUrl, String.class);
+                double minLng = route.stream().mapToDouble(coord -> coord.get(0)).min().orElse(0);
+                double minLat = route.stream().mapToDouble(coord -> coord.get(1)).min().orElse(0);
+                double maxLng = route.stream().mapToDouble(coord -> coord.get(0)).max().orElse(0);
+                double maxLat = route.stream().mapToDouble(coord -> coord.get(1)).max().orElse(0);
 
-                // Count the number of trackpoints as popularity
-                int popularity = response != null ? response.split("<trkpt ").length - 1 : 0;
-                System.out.println("popularity : " + popularity);
+                String bboxUrl = OSM_API_URL + minLng + "," + minLat + "," + maxLng + "," + maxLat;
 
-                popularityData.add(Map.of(
-                        "route", route,
-                        "popularity", popularity
-                ));
+                String response = fetchGpsTraceData(bboxUrl);
+                int matchedPoints = countMatchedPoints(response, route);
+                popularities.add(matchedPoints);
+
             } catch (Exception e) {
-                System.out.println("inside catch");
-                popularityData.add(Map.of(
-                        "route", route,
-                        "popularity", 0
-                ));
+                e.printStackTrace();
+                popularities.add(0);
             }
         }
 
-        System.out.println(popularityData);
-        return popularityData;
+        return popularities;
     }
 
+    private String fetchGpsTraceData(String url) throws IOException {
+        RestTemplate restTemplate = new RestTemplate();
+        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+        return response.getBody();
+    }
 
+    private int countMatchedPoints(String xmlData, List<List<Double>> route) throws Exception {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        Document doc = builder.parse(new InputSource(new StringReader(xmlData)));
+
+        NodeList trackpoints = doc.getElementsByTagName("trkpt");
+        int matchedCount = 0;
+
+        for (int i = 0; i < trackpoints.getLength(); i++) {
+            Element point = (Element) trackpoints.item(i);
+            double lat = Double.parseDouble(point.getAttribute("lat"));
+            double lon = Double.parseDouble(point.getAttribute("lon"));
+
+            for (List<Double> coord : route) {
+                double distance = Math.sqrt(
+                    Math.pow(lat - coord.get(1), 2) + Math.pow(lon - coord.get(0), 2)
+                );
+                if (distance < MATCHING_DISTANCE_THRESHOLD) {
+                    matchedCount++;
+                    break;
+                }
+            }
+        }
+        return matchedCount;
+    }
     
 }

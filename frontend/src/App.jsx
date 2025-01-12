@@ -89,87 +89,6 @@ function App() {
       setrouteCoordinate([])
     }
 
-//     const MAX_BBOX_SIZE = 0.25; // Maximum allowed bbox size
-
-// // Helper function to split bbox into smaller tiles
-// const splitBoundingBox = (minLng, minLat, maxLng, maxLat) => {
-//   const bboxes = [];
-//   for (let lng = minLng; lng < maxLng; lng += MAX_BBOX_SIZE) {
-//     for (let lat = minLat; lat < maxLat; lat += MAX_BBOX_SIZE) {
-//       bboxes.push({
-//         minLng: lng,
-//         minLat: lat,
-//         maxLng: Math.min(lng + MAX_BBOX_SIZE, maxLng),
-//         maxLat: Math.min(lat + MAX_BBOX_SIZE, maxLat),
-//       });
-//     }
-//   }
-//   return bboxes;
-// };
-
-//     //fetch gps trace
-//     const fetchRoutepopularity = async (routeCoordinate) => {
-//       const boundingBox = {
-//         min_lat: Math.min(...routeCoordinate.map((coord) => coord.lat)),
-//         max_lat: Math.max(...routeCoordinate.map((coord) => coord.lat)),
-//         min_lng: Math.min(...routeCoordinate.map((coord) => coord.lng)),
-//         max_lng: Math.max(...routeCoordinate.map((coord) => coord.lng)),
-//       };
-    
-//       // Split the bbox into smaller tiles
-//       const bboxes = splitBoundingBox(
-//         boundingBox.min_lng,
-//         boundingBox.min_lat,
-//         boundingBox.max_lng,
-//         boundingBox.max_lat
-//       );
-
-//       try{
-
-//       let totalMatchedPoints  = 0;
-//       for(const bbox of bboxes){
-//       console.log("Fetching GPS data for BBox:", bbox);
-//       const gpsTraceUrl = `https://api.openstreetmap.org/api/0.6/trackpoints?bbox=${bbox.minLng},${bbox.minLat},${bbox.maxLng},${bbox.maxLat}`;;
-
-      
-//         const response = await fetch(gpsTraceUrl);
-//         const xmlText = await response.text();
-//         console.log("API Response:", xmlText);
-
-//         const parser = new DOMParser();
-//         const xmlDoc = parser.parseFromString(xmlText, "application/xml");
-//         console.log("Parsed XML:", xmlDoc);
-
-//         const namespace = "http://www.topografix.com/GPX/1/0";
-//         const gpsPoints = Array.from(xmlDoc.getElementsByTagNameNS(namespace,"trkpt"));
-//         console.log("Parsed GPS Points:", gpsPoints);
-
-//         const matchedpoints = gpsPoints.filter((point) => {
-//           const lat = parseFloat(point.getAttribute("lat"));
-//           const lon = parseFloat(point.getAttribute("lon"));
-
-//           return routeCoordinate.some(
-//             (coord) => {
-//               const distance = Math.sqrt(
-//                 Math.pow(coord.lat - lat, 2) + Math.pow(coord.lng - lon, 2)
-//               );
-//               return distance < 0.01;
-//             }
-//           )
-//         })
-//         totalMatchedPoints =+ matchedpoints.length; //popularity count
-//         console.log("Matchpoints : " + totalMatchedPoints);
-//       }
-      
-//       return totalMatchedPoints;
-//       }
-//       catch (err) {
-//         console.error("Error fetching GPS trace", err);
-//         return 0;    
-//       }
-//     };
-
-
 
     const handleRouteDirection = useCallback(() => {
       if (!location || !searchLocation) return;
@@ -189,27 +108,36 @@ function App() {
                 }))
               );
 
-              const requestBody = {
-                source: { lat: location[0], lng: location[1] },
-                destination: { lat: searchLocation[0], lng: searchLocation[1] },
-              };
+              setrouteCoordinate(routes);
+              // const requestBody = {
+              //   source: { lat: location[0], lng: location[1] },
+              //   destination: { lat: searchLocation[0], lng: searchLocation[1] },
+              // };
+              // const backendRoutes = routes.map(route => route.map(coord => [coord.lat, coord.lng]));
 
-              console.log("Sending to backend:", requestBody); 
+              // console.log("Sending to backend:", backendRoutes); 
   
               fetch("http://localhost:8080/api/routes/popularity", {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                 },
-                body: JSON.stringify(routes),
+                body: JSON.stringify(
+                  routes.map((route) =>
+                  route.map((point) => [point.lng, point.lat]))
+                ),
               })
                 .then((res) => res.json())                 
-               .then((popularityData) => {
-                console.log("Popuilarity api response : ", popularityData)
-                  setPopularity(popularityData.popularities);
+               .then((popularity) => {
+                console.log("Popuilarity api response : ", popularity)
+
+                  setPopularity(popularity);
+                  // setrouteCoordinate(routes);
                   
                 })
-                setrouteCoordinate(routes);
+                .catch((err) =>
+                  console.error("Error fetching popularity data:", err)
+                );
                 
             }
           })
@@ -251,22 +179,18 @@ function App() {
               }
             }
             >
-              {/* <Tooltip>
+              <Tooltip>
               <div>
                 <b>Route Details</b>
-                <b>Popularity:</b> {popularity[index]} users
+                <br />
+                <b>Popularity:</b> {popularity[index] || 0} users
               </div>
-            </Tooltip> */}
+            </Tooltip>
 
             </Polyline>
         ))}
 
       </MapContainer>
-
-      {/* {searchLocation && (
-        <button className='btn-directions' onClick={handleRouteDirection}>➡️</button>
-      )} */}
-      
     </div>
   )
 }

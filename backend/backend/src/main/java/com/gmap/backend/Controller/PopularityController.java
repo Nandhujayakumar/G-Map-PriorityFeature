@@ -1,12 +1,12 @@
 package com.gmap.backend.Controller;
 
 import java.util.List;
-import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import com.gmap.backend.Service.RouteService;
 
 
@@ -15,13 +15,19 @@ import com.gmap.backend.Service.RouteService;
 @CrossOrigin(origins = "http://localhost:5173")
 public class PopularityController {
 
+    private static final Logger logger = LoggerFactory.getLogger(PopularityController.class);
+
     @Autowired
     private RouteService routeService;
 
-    @PostMapping("/popularity")
-    public ResponseEntity<List<Map <String, Object>>> getRoutePopularity(@RequestBody List<List<Map<String, Double>>> routes) {
-        List<Map<String, Object>> popularityData = routeService.calculateRoutePopularity(routes);
-        return ResponseEntity.ok(popularityData);
+    @PostMapping(value = "/popularity", produces = "application/json")
+    public ResponseEntity<List<Integer>> getRoutePopularity(@RequestBody List<List<List<Double>>> routes) {
+        try {
+            List<Integer> popularities = routeService.calculatePopularityForRoutes(routes);
+            return ResponseEntity.ok(popularities);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(null);
+        }
     }
     
 
