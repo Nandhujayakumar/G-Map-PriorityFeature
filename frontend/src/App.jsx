@@ -87,6 +87,7 @@ function App() {
     const handleClearSearchlocation = () =>{
       setSearchLocation(null);
       setrouteCoordinate([])
+      setPopularity([])
     }
 
 
@@ -109,13 +110,6 @@ function App() {
               );
 
               setrouteCoordinate(routes);
-              // const requestBody = {
-              //   source: { lat: location[0], lng: location[1] },
-              //   destination: { lat: searchLocation[0], lng: searchLocation[1] },
-              // };
-              // const backendRoutes = routes.map(route => route.map(coord => [coord.lat, coord.lng]));
-
-              // console.log("Sending to backend:", backendRoutes); 
   
               fetch("http://localhost:8080/api/routes/popularity", {
                 method: "POST",
